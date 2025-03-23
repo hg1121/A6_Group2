@@ -4,7 +4,11 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -13,8 +17,30 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.bumptech.glide.Glide;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
+
 public class WebserviceActivity extends AppCompatActivity {
-    Spinner movie_genre, movie_cnt;
+    private static final String API_KEY = "0b6f4c7785d802fc2b2916c70df15f67";
+    private static final String BASE_URL = "https://api.themoviedb.org/3/";
+    private static final String IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
+    
+    private Spinner movie_genre, movie_cnt;
+    private Button sendRequestButton;
+    private LinearLayout movieContainer;
+    private TMDBApi tmdbApi;
+    private Map<String, Integer> genreMap;
+    private int selectedCount = 1;
+    private int selectedGenreId = 28; // Default to Action
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -22,62 +48,136 @@ public class WebserviceActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_webservice);
 
-        // for movie genre dropdown menu
-        movie_genre = (Spinner) findViewById(R.id.genres_dropdown);
-        // Create an ArrayAdapter using the string array and a default spinner layout.
-        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
-                this,
-                R.array.movie_genres,
-                android.R.layout.simple_spinner_item
-        );
-        // Specify the layout to use when the list of choices appears.
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        // Apply the adapter to the spinner.
-        movie_genre.setAdapter(adapter);
+        initializeViews();
+        setupRetrofit();
+        setupGenreMap();
+        setupSpinners();
+        setupSendRequestButton();
+    }
 
-        // Set onItemSelectedListener
+    private void initializeViews() {
+        movie_genre = findViewById(R.id.genres_dropdown);
+        movie_cnt = findViewById(R.id.movie_cnt);
+        sendRequestButton = findViewById(R.id.send_request);
+        movieContainer = findViewById(R.id.movie_poster_container);
+    }
+
+    private void setupRetrofit() {
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(BASE_URL)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+        tmdbApi = retrofit.create(TMDBApi.class);
+    }
+
+    private void setupGenreMap() {
+        genreMap = new HashMap<>();
+        genreMap.put("Action", 28);
+        genreMap.put("Adventure", 12);
+        genreMap.put("Animation", 16);
+        genreMap.put("Comedy", 35);
+        genreMap.put("Crime", 80);
+        genreMap.put("Documentary", 99);
+        genreMap.put("Drama", 18);
+        genreMap.put("Family", 10751);
+        genreMap.put("Fantasy", 14);
+        genreMap.put("History", 36);
+        genreMap.put("Horror", 27);
+        genreMap.put("Music", 10402);
+        genreMap.put("Mystery", 9648);
+        genreMap.put("Romance", 10749);
+        genreMap.put("Science Fiction", 878);
+        genreMap.put("TV Movie", 10770);
+        genreMap.put("Thriller", 53);
+        genreMap.put("War", 10752);
+        genreMap.put("Western", 37);
+    }
+
+    private void setupSpinners() {
+        // Movie genre spinner
+        ArrayAdapter<CharSequence> genreAdapter = ArrayAdapter.createFromResource(
+                this, R.array.movie_genres, android.R.layout.simple_spinner_item);
+        genreAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        movie_genre.setAdapter(genreAdapter);
         movie_genre.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                // update query category
+                String selectedGenre = parent.getItemAtPosition(position).toString();
+                selectedGenreId = genreMap.get(selectedGenre);
             }
 
             @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-                // Do nothing
-            }
+            public void onNothingSelected(AdapterView<?> parent) {}
         });
 
-
-        // for movie cnt dropdown
-        movie_cnt = findViewById(R.id.movie_cnt);
-
-        // Data for dropdown menu
-        String[] items = {"1", "3", "5"};
-
-        // Create an ArrayAdapter
-        ArrayAdapter<String> adapter_cnt = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, items);
-
-        // Set adapter to Spinner
-        movie_cnt.setAdapter(adapter_cnt);
-
-        // Set onItemSelectedListener
+        // Movie count spinner
+        String[] counts = {"1", "3", "5"};
+        ArrayAdapter<String> countAdapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_item, counts);
+        countAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        movie_cnt.setAdapter(countAdapter);
         movie_cnt.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                // update the query cnt
+                selectedCount = Integer.parseInt(parent.getItemAtPosition(position).toString());
             }
 
             @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-
-            }
-
+            public void onNothingSelected(AdapterView<?> parent) {}
         });
+    }
 
+    private void setupSendRequestButton() {
+        sendRequestButton.setOnClickListener(v -> fetchMovies());
+    }
 
+    private void fetchMovies() {
+        movieContainer.removeAllViews();
+        
+        tmdbApi.getMoviesByGenre(API_KEY, selectedGenreId, "popularity.desc")
+                .enqueue(new Callback<MovieResponse>() {
+                    @Override
+                    public void onResponse(Call<MovieResponse> call, Response<MovieResponse> response) {
+                        if (response.isSuccessful() && response.body() != null) {
+                            List<Movie> movies = response.body().getResults();
+                            displayMovies(movies.subList(0, Math.min(selectedCount, movies.size())));
+                        } else {
+                            showError("Error fetching movies");
+                        }
+                    }
 
+                    @Override
+                    public void onFailure(Call<MovieResponse> call, Throwable t) {
+                        showError("Network error: " + t.getMessage());
+                    }
+                });
+    }
 
+    private void displayMovies(List<Movie> movies) {
+        for (Movie movie : movies) {
+            View movieView = getLayoutInflater().inflate(R.layout.movie_item, movieContainer, false);
+            
+            ImageView posterImage = movieView.findViewById(R.id.movie_poster);
+            TextView titleText = movieView.findViewById(R.id.movie_title);
+            TextView ratingText = movieView.findViewById(R.id.movie_rating);
+            TextView overviewText = movieView.findViewById(R.id.movie_overview);
+            
+            titleText.setText(movie.getTitle());
+            ratingText.setText(String.format("Rating: %.1f", movie.getVoteAverage()));
+            overviewText.setText(movie.getOverview());
+            
+            if (movie.getPosterPath() != null) {
+                String imageUrl = IMAGE_BASE_URL + movie.getPosterPath();
+                Glide.with(this)
+                        .load(imageUrl)
+                        .into(posterImage);
+            }
+            
+            movieContainer.addView(movieView);
+        }
+    }
 
+    private void showError(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 }
