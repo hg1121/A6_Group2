@@ -39,7 +39,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:textColor="@android:color/darker_gray"/>
+                android:textColor="@android:color/holo_orange_light"/>
 
             <TextView
                 android:id="@+id/movie_overview"
@@ -47,7 +47,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:maxLines="5"
-                android:ellipsize="end"/>
+                android:ellipsize="end"
+                android:textColor="@android:color/darker_gray"/>
 
         </LinearLayout>
     </LinearLayout>
