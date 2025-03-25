@@ -1,5 +1,6 @@
 package com.example.a6_group2;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.AdapterView;
@@ -13,9 +14,6 @@ import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 
 import com.bumptech.glide.Glide;
 
@@ -33,7 +31,7 @@ public class WebserviceActivity extends AppCompatActivity {
     private static final String API_KEY = "0b6f4c7785d802fc2b2916c70df15f67";
     private static final String BASE_URL = "https://api.themoviedb.org/3/";
     private static final String IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
-    
+
     private Spinner movie_genre, movie_cnt;
     private Button sendRequestButton;
     private LinearLayout movieContainer;
@@ -133,7 +131,7 @@ public class WebserviceActivity extends AppCompatActivity {
 
     private void fetchMovies() {
         movieContainer.removeAllViews();
-        
+
         tmdbApi.getMoviesByGenre(API_KEY, selectedGenreId, "popularity.desc")
                 .enqueue(new Callback<MovieResponse>() {
                     @Override
@@ -156,23 +154,30 @@ public class WebserviceActivity extends AppCompatActivity {
     private void displayMovies(List<Movie> movies) {
         for (Movie movie : movies) {
             View movieView = getLayoutInflater().inflate(R.layout.movie_item, movieContainer, false);
-            
+
             ImageView posterImage = movieView.findViewById(R.id.movie_poster);
             TextView titleText = movieView.findViewById(R.id.movie_title);
             TextView ratingText = movieView.findViewById(R.id.movie_rating);
             TextView overviewText = movieView.findViewById(R.id.movie_overview);
-            
+
             titleText.setText(movie.getTitle());
             ratingText.setText(String.format("Rating: %.1f", movie.getVoteAverage()));
             overviewText.setText(movie.getOverview());
-            
+
             if (movie.getPosterPath() != null) {
                 String imageUrl = IMAGE_BASE_URL + movie.getPosterPath();
                 Glide.with(this)
                         .load(imageUrl)
                         .into(posterImage);
             }
-            
+
+            // 添加点击事件，启动 MovieDetailActivity 并传递 movieId
+            movieView.setOnClickListener(v -> {
+                Intent intent = new Intent(WebserviceActivity.this, MovieDetailActivity.class);
+                intent.putExtra("movieId", movie.getId());
+                startActivity(intent);
+            });
+
             movieContainer.addView(movieView);
         }
     }

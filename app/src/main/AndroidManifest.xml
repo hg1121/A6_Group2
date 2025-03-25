@@ -17,6 +17,8 @@
         <activity
             android:name=".WebserviceActivity"
             android:exported="false" />
+        <activity android:name=".MovieDetailActivity"
+            android:exported="true" />
         <activity
             android:name=".MainActivity"
             android:exported="true">
