@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <!-- 背景图片，使用 centerCrop 确保图片裁剪效果 -->
+    <!-- Backgroud -->
     <ImageView
         android:id="@+id/backgroundImageView"
         android:layout_width="match_parent"
@@ -14,13 +14,13 @@
         android:scaleType="centerCrop"
         android:src="@drawable/movie" />
 
-    <!-- 半透明遮罩层，增强文字与背景的对比度 -->
+    <!--  -->
     <View
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#80000000" /> <!-- 50% 黑色遮罩 -->
+        android:background="#80000000" /> <!-- 50%  -->
 
-    <!-- 内容布局：文字和按钮 -->
+    <!-- Button and text -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
