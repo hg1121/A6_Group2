@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <!-- Backgroud -->
+    <!-- Background -->
     <ImageView
         android:id="@+id/backgroundImageView"
         android:layout_width="match_parent"
@@ -14,24 +14,11 @@
         android:scaleType="centerCrop"
         android:src="@drawable/movie" />
 
-    <!--  -->
+    <!-- Dark overlay -->
     <View
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#80000000" /> <!-- 50%  -->
-    <Button
-        android:id="@+id/btn_main"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="WEB SERVICE"
-        android:layout_marginTop="10dp" />
-
-    <Button
-        android:id="@+id/btn_weather"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="CHECK WEATHER"
-        android:layout_marginTop="10dp" />
+        android:background="#80000000" />
 
     <!-- Button and text -->
     <LinearLayout
@@ -60,6 +47,14 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
             android:text="WEB SERVICE" />
+
+        <Button
+            android:id="@+id/btn_weather"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="CHECK WEATHER" />
+
     </LinearLayout>
 
 </FrameLayout>
