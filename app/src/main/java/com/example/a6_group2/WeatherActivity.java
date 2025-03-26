@@ -5,6 +5,9 @@ import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
+import android.os.Handler;
+import android.view.View;
+import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -17,12 +20,19 @@ import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;
 import java.io.IOException;
 
+
+
 public class WeatherActivity extends AppCompatActivity {
     private EditText cityInput;
     private RecyclerView weatherRecyclerView;
     private WeatherAdapter weatherAdapter;
+    private TextView weatherLoadingText;
     private static final String WEATHER_API_KEY = "6af456e54cbb3ee9b606557b2376824f";
     private static final String BASE_URL = "https://api.openweathermap.org/data/2.5/";
+
+    private Handler handler = new Handler();
+    private int dotCount = 0;
+    private boolean isLoading = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,6 +42,7 @@ public class WeatherActivity extends AppCompatActivity {
         cityInput = findViewById(R.id.city_input);
         Button getWeatherBtn = findViewById(R.id.get_weather_btn);
         weatherRecyclerView = findViewById(R.id.weather_recycler_view);
+        weatherLoadingText = findViewById(R.id.weather_loading_text);
 
         // Setup RecyclerView
         weatherAdapter = new WeatherAdapter();
@@ -61,6 +72,8 @@ public class WeatherActivity extends AppCompatActivity {
                 return;
             }
 
+            startLoadingAnimation();
+
             // Log the API call details
             Log.d("WeatherAPI", "Making API call for city: " + city);
             Log.d("WeatherAPI", "Using API key: " + WEATHER_API_KEY);
@@ -69,6 +82,7 @@ public class WeatherActivity extends AppCompatActivity {
             call.enqueue(new Callback<Weather>() {
                 @Override
                 public void onResponse(Call<Weather> call, Response<Weather> response) {
+                    stopLoadingAnimation();
                     if (response.isSuccessful() && response.body() != null) {
                         Weather weather = response.body();
                         weatherAdapter.setWeatherData(weather);
@@ -77,11 +91,11 @@ public class WeatherActivity extends AppCompatActivity {
                         try {
                             String errorBody = response.errorBody().string();
                             Log.e("WeatherAPI", "Error body: " + errorBody);
-                            Toast.makeText(WeatherActivity.this, 
+                            Toast.makeText(WeatherActivity.this,
                                 "Error: " + errorBody, Toast.LENGTH_LONG).show();
                         } catch (IOException e) {
                             Log.e("WeatherAPI", "Error reading error body", e);
-                            Toast.makeText(WeatherActivity.this, 
+                            Toast.makeText(WeatherActivity.this,
                                 "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                         }
                     }
@@ -90,10 +104,33 @@ public class WeatherActivity extends AppCompatActivity {
                 @Override
                 public void onFailure(Call<Weather> call, Throwable t) {
                     Log.e("WeatherAPI", "Network error", t);
-                    Toast.makeText(WeatherActivity.this, 
+                    Toast.makeText(WeatherActivity.this,
                         "Network error: " + t.getMessage(), Toast.LENGTH_LONG).show();
                 }
             });
         });
     }
-} 
+
+    private void startLoadingAnimation() {
+        isLoading = true;
+        weatherLoadingText.setVisibility(View.VISIBLE);
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                if (!isLoading) return;
+
+                StringBuilder dots = new StringBuilder();
+                for (int i = 0; i < dotCount; i++) dots.append(".");
+                weatherLoadingText.setText("Loading" + dots);
+                dotCount = (dotCount + 1) % 4;
+
+                handler.postDelayed(this, 500);
+            }
+        });
+    }
+
+    private void stopLoadingAnimation() {
+        isLoading = false;
+        weatherLoadingText.setVisibility(View.GONE);
+    }
+}
