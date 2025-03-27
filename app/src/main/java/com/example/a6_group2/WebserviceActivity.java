@@ -2,6 +2,7 @@ package com.example.a6_group2;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -35,10 +36,14 @@ public class WebserviceActivity extends AppCompatActivity {
     private Spinner movie_genre, movie_cnt;
     private Button sendRequestButton;
     private LinearLayout movieContainer;
+    private TextView loadingText;
     private TMDBApi tmdbApi;
     private Map<String, Integer> genreMap;
     private int selectedCount = 1;
     private int selectedGenreId = 28; // Default to Action
+    private Handler handler = new Handler();
+    private int dotCount = 0;
+    private boolean isLoading = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,6 +63,7 @@ public class WebserviceActivity extends AppCompatActivity {
         movie_cnt = findViewById(R.id.movie_cnt);
         sendRequestButton = findViewById(R.id.send_request);
         movieContainer = findViewById(R.id.movie_poster_container);
+        loadingText = findViewById(R.id.loading_text);
     }
 
     private void setupRetrofit() {
@@ -129,13 +135,38 @@ public class WebserviceActivity extends AppCompatActivity {
         sendRequestButton.setOnClickListener(v -> fetchMovies());
     }
 
+    private void startLoadingAnimation() {
+        isLoading = true;
+        loadingText.setVisibility(View.VISIBLE);
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                if (!isLoading) return;
+
+                StringBuilder dots = new StringBuilder();
+                for (int i = 0; i < dotCount; i++) dots.append(".");
+                loadingText.setText("Loading" + dots);
+                dotCount = (dotCount + 1) % 4;
+
+                handler.postDelayed(this, 500);
+            }
+        });
+    }
+
+    private void stopLoadingAnimation() {
+        isLoading = false;
+        loadingText.setVisibility(View.GONE);
+    }
+
     private void fetchMovies() {
         movieContainer.removeAllViews();
+        startLoadingAnimation();
 
         tmdbApi.getMoviesByGenre(API_KEY, selectedGenreId, "popularity.desc")
                 .enqueue(new Callback<MovieResponse>() {
                     @Override
                     public void onResponse(Call<MovieResponse> call, Response<MovieResponse> response) {
+                        stopLoadingAnimation();
                         if (response.isSuccessful() && response.body() != null) {
                             List<Movie> movies = response.body().getResults();
                             displayMovies(movies.subList(0, Math.min(selectedCount, movies.size())));
@@ -146,6 +177,7 @@ public class WebserviceActivity extends AppCompatActivity {
 
                     @Override
                     public void onFailure(Call<MovieResponse> call, Throwable t) {
+                        stopLoadingAnimation();
                         showError("Network error: " + t.getMessage());
                     }
                 });
@@ -171,7 +203,6 @@ public class WebserviceActivity extends AppCompatActivity {
                         .into(posterImage);
             }
 
-            // 添加点击事件，启动 MovieDetailActivity 并传递 movieId
             movieView.setOnClickListener(v -> {
                 Intent intent = new Intent(WebserviceActivity.this, MovieDetailActivity.class);
                 intent.putExtra("movieId", movie.getId());
